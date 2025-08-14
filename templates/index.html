@@ -5,28 +5,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kenzen Garena Checker</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛡️</text></svg>">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>Garena Account Checker</h1>
-            <p class="subtitle">Web Version by @Kenze03</p>
+            <div class="logo">🛡️</div>
+            <h1>Kenzen Garena Checker</h1>
+            <p class="subtitle">Secure & Reliable Web Version by @Kenze03</p>
         </header>
 
-        <form action="/check" method="POST" id="checker-form">
-            <div class="form-group">
-                <label for="combos">Paste Combo List (user:pass)</label>
-                <textarea name="combos" id="combos" rows="15" placeholder="user1:pass1&#10;user2:pass2&#10;user3:pass3" required></textarea>
-            </div>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash-message {{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
 
+        <form action="/check" method="POST" id="checker-form" enctype="multipart/form-data">
             <div class="form-group">
-                <label>Select Checker Speed</label>
-                <div class="radio-group">
-                    <label><input type="radio" name="speed" value="slow"> 🐢 Slow</label>
-                    <label><input type="radio" name="speed" value="medium" checked> ⚖️ Medium</label>
-                    <label><input type="radio" name="speed" value="fast"> ⚡ Fast</label>
-                    <label><input type="radio" name="speed" value="ultra"> 🚀 Ultra</label>
-                </div>
+                <label for="combos_file" class="file-label">
+                    <span class="file-icon">📄</span>
+                    <span id="file-name">Click to Upload .txt Combo List</span>
+                </label>
+                <input type="file" name="combos_file" id="combos_file" accept=".txt" required>
             </div>
 
             <button type="submit" class="submit-btn">Launch Scan</button>
@@ -45,7 +48,14 @@
 
     <script>
         document.getElementById('checker-form').addEventListener('submit', function() {
-            document.getElementById('loading-overlay').classList.remove('hidden');
+            if (document.getElementById('combos_file').files.length > 0) {
+                document.getElementById('loading-overlay').classList.remove('hidden');
+            }
+        });
+
+        document.getElementById('combos_file').addEventListener('change', function() {
+            const fileName = this.files[0] ? this.files[0].name : 'Click to Upload .txt Combo List';
+            document.getElementById('file-name').textContent = fileName;
         });
     </script>
 </body>
