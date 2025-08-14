@@ -5,10 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Scan Results - Kenzen Checker</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📊</text></svg>">
 </head>
 <body>
-    <div class="container">
+    <div class="container results-container">
         <header>
+            <div class="logo">📊</div>
             <h1>Scan Results</h1>
         </header>
 
@@ -31,37 +33,45 @@
         {% endif %}
 
         <div class="summary">
-            <h2>Summary</h2>
-            <p><strong>Total Accounts Submitted:</strong> {{ total_submitted }}</p>
-            <p class="success-text"><strong>Successful Hits:</strong> {{ success_results | length }}</p>
-            <p class="failed-text"><strong>Failed / Skipped:</strong> {{ failed_results | length }}</p>
+            <div class="summary-item">
+                <span class="summary-label">Total Submitted</span>
+                <span class="summary-value">{{ total_submitted }}</span>
+            </div>
+             <div class="summary-item">
+                <span class="summary-label">Successful Hits</span>
+                <span class="summary-value success-text">{{ success_results | length }}</span>
+            </div>
+             <div class="summary-item">
+                <span class="summary-label">Failed / Skipped</span>
+                <span class="summary-value failed-text">{{ failed_results | length }}</span>
+            </div>
         </div>
-
+        
         <div class="results-section">
-            <h2>✅ Successful Accounts ({{ success_results | length }})</h2>
+            <h2><span class="icon-green">✔</span> Successful Accounts ({{ success_results | length }})</h2>
             {% if success_results %}
                 {% for result in success_results %}
-                <div class="result-box success">
-                    <h3>{{ result.account }}</h3>
+                <details class="result-box success">
+                    <summary><h3>{{ result.account }}</h3></summary>
                     <pre>{{ result.details | strip_ansi }}</pre>
-                </div>
+                </details>
                 {% endfor %}
             {% else %}
-                <p>No successful accounts found.</p>
+                <p class="no-results">No successful accounts found in this batch.</p>
             {% endif %}
         </div>
 
         <div class="results-section">
-            <h2>❌ Failed / Skipped Accounts ({{ failed_results | length }})</h2>
+            <h2><span class="icon-red">✖</span> Failed / Skipped Accounts ({{ failed_results | length }})</h2>
              {% if failed_results %}
                 {% for result in failed_results %}
-                <div class="result-box failed">
-                    <h3>{{ result.account }}</h3>
+                 <details class="result-box failed">
+                    <summary><h3>{{ result.account }}</h3></summary>
                     <p><strong>Reason:</strong> {{ result.reason | strip_ansi }}</p>
-                </div>
+                </details>
                 {% endfor %}
             {% else %}
-                <p>No failed or skipped accounts.</p>
+                <p class="no-results">No failed or skipped accounts.</p>
             {% endif %}
         </div>
         
