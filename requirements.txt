@@ -1,4 +1,6 @@
 Flask
 requests
+tqdm
+colorama
 pycryptodome
-gunicorn
+werkzeug
