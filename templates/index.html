@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kenzen Garena Checker</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Garena Account Checker</h1>
+            <p class="subtitle">Web Version by @Kenze03</p>
+        </header>
+
+        <form action="/check" method="POST" id="checker-form">
+            <div class="form-group">
+                <label for="combos">Paste Combo List (user:pass)</label>
+                <textarea name="combos" id="combos" rows="15" placeholder="user1:pass1&#10;user2:pass2&#10;user3:pass3" required></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Select Checker Speed</label>
+                <div class="radio-group">
+                    <label><input type="radio" name="speed" value="slow"> 🐢 Slow</label>
+                    <label><input type="radio" name="speed" value="medium" checked> ⚖️ Medium</label>
+                    <label><input type="radio" name="speed" value="fast"> ⚡ Fast</label>
+                    <label><input type="radio" name="speed" value="ultra"> 🚀 Ultra</label>
+                </div>
+            </div>
+
+            <button type="submit" class="submit-btn">Launch Scan</button>
+        </form>
+
+        <div id="loading-overlay" class="hidden">
+            <div class="spinner"></div>
+            <p>Scanning accounts... Please remain on this page.</p>
+            <p>This may take several minutes.</p>
+        </div>
+
+    </div>
+    <footer>
+        <p>This tool is for educational and testing purposes only.</p>
+    </footer>
+
+    <script>
+        document.getElementById('checker-form').addEventListener('submit', function() {
+            document.getElementById('loading-overlay').classList.remove('hidden');
+        });
+    </script>
+</body>
+</html>
